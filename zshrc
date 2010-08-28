@@ -490,6 +490,27 @@ case "$TERM" in
     }
     ;;
 esac
+
+
+
+NOTIFY_COMMAND='notify-send -t $(($NOTIFY_TIMEOUT * 1000)) -i $NOTIFY_ICON "Returned: $LBUFFER"'
+NOTIFY_THRESHOLD=0
+NOTIFY_TIMEOUT=5
+NOTIFY_ICON=~/.face
+
+notify_preexec() {
+    NOTIFY_START=`date +%s`
+    NOTIFY_START=$(($NOTIFY_START * 1))
+    NOTIFY_CMD=$_
+}
+
+notify_precmd() {
+    NOTIFY_END=`date +%s`
+    NOTIFY_END=$(($NOTIFY_END * 1))
+    if (( $NOTIFY_END - $NOTIFY_START >= $NOTIFY_THRESHOLD )); then
+        eval $NOTIFY_COMMAND
+    fi
+}
 ####################################### }}}
 
 
@@ -516,6 +537,9 @@ AM_LAPTOP=`whence acpi`
 if [ $AM_LAPTOP ]; then
     AM_LAPTOP=`acpi -b`
 fi
+
+# If notify-send is available, we can make use of it.
+HAVE_NOTIFY=`whence notify-send`
 
 # How wide the RPROMPT battery meter should be - for automatic width, set this to 0.
 BATT_METER_WIDTH=0
@@ -544,8 +568,8 @@ PROMPT2=$PR_GREEN'%B%_>%b '
 RPROMPT=$PR_CYAN'%B[%~]%(?..{%?})%b' # For reference only. This is clobbered by update_rprompt().
 SPROMPT=$PR_MAGENTA'zsh: correct '%R' to '%r'? '$PR_NO_COLOR
 
-precmd_functions=(precmd_update_title update_rprompt)
-preexec_functions=(preexec_update_title)
+precmd_functions=(precmd_update_title notify_precmd update_rprompt)
+preexec_functions=(preexec_update_title notify_preexec)
 
 #TODO: Check if we are a login shell. This could hang a script without that.
 if [ `whence keychain` ]; then
